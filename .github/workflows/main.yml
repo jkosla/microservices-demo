@@ -26,32 +26,29 @@ jobs:
         with:
           version: 'v1.32.3' 
 
-      - name: install terraform cli
+      - name: Install Terraform
         uses: hashicorp/setup-terraform@v3
 
       - name: Terraform Init
         run: terraform -chdir=deploy/kubernetes/terraform init
 
-      - name: destroy
-        run: terraform destroy
-
-      # - name: Terraform Plan
-      #   id: plan
-      #   run: terraform -chdir=deploy/kubernetes/terraform  plan
+      - name: Terraform Plan
+        id: plan
+        run: terraform -chdir=deploy/kubernetes/terraform  plan
         
-      # - name: Terraform apply
-      #   id: apply
-      #   run: terraform -chdir=deploy/kubernetes/terraform apply --auto-approve
+      - name: Terraform apply
+        id: apply
+        run: terraform -chdir=deploy/kubernetes/terraform apply --auto-approve
 
-      # - name: AWS EKS with Kubectl
-      #   uses: giovannirossini/aws-eks@v1.0.1
-      #   with:
-      #     aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      #     aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      #     aws-region: "us-east-1"
-      #     cluster-name: "sock-shop"
-      #     command: |
-      #       kubectl apply -f deploy/kubernetes/complete-demo.yaml
+      - name: AWS EKS with Kubectl
+        uses: giovannirossini/aws-eks@v1.0.1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: "us-east-1"
+          cluster-name: "sock-shop"
+          command: |
+            kubectl apply -f deploy/kubernetes/complete-demo.yaml
 
 
 
