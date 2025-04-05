@@ -1,0 +1,55 @@
+name: Terraform and Deploy to EKS
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  terraform:
+    name: Terraform
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: 'v1.32.3' 
+
+      - name: install terraform cli
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Terraform Init
+        run: terraform -chdir=deploy/kubernetes/terraform init
+
+      - name: Terraform Plan
+        id: plan
+        run: terraform -chdir=deploy/kubernetes/terraform  plan
+        
+      - name: Terraform apply
+        id: apply
+        run: terraform -chdir=deploy/kubernetes/terraform apply --auto-approve
+
+      - name: AWS EKS with Kubectl
+        uses: giovannirossini/aws-eks@v1.0.1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: "us-east-1"
+          cluster-name: "socket-shop"
+          command: |
+            kubectl apply -f deploy/kubernetes/complete-demo.yaml
+
+
+
+
