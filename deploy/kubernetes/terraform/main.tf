@@ -74,7 +74,7 @@ module "eks" {
 
   eks_managed_node_groups = {
     one = {
-      name = "socket-shop-node-group-1"
+      name = "socket-shop-group-1"
 
       instance_types = ["t3.medium"]
 
@@ -84,7 +84,7 @@ module "eks" {
     }
 
     two = {
-      name = "socket-shop-node-group-2"
+      name = "socket-shop-group-2"
 
       instance_types = ["t3.medium"]
 
