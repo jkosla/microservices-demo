@@ -1,136 +1,113 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 provider "aws" {
-  region = "${var.aws_region}"
+  region = var.region
 }
 
-resource "aws_security_group" "k8s-security-group" {
-  name        = "md-k8s-security-group"
-  description = "allow all internal traffic, ssh, http from anywhere"
-  ingress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    self        = "true"
-  }
-  ingress {
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-  ingress {
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-  ingress {
-    from_port   = 9411
-    to_port     = 9411
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-  ingress {
-    from_port   = 30001
-    to_port     = 30001
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-  ingress {
-    from_port   = 30002
-    to_port     = 30002
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-  ingress {
-   from_port   = 31601
-   to_port     = 31601
-   protocol    = "tcp"
-   cidr_blocks = ["0.0.0.0/0"]
- }
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
+# Filter out local zones, which are not currently supported 
+# with managed node groups
+data "aws_availability_zones" "available" {
+  filter {
+    name   = "opt-in-status"
+    values = ["opt-in-not-required"]
   }
 }
 
-resource "aws_instance" "ci-sockshop-k8s-master" {
-  instance_type   = "${var.master_instance_type}"
-  ami             = "${lookup(var.aws_amis, var.aws_region)}"
-  key_name        = "${var.key_name}"
-  security_groups = ["${aws_security_group.k8s-security-group.name}"]
-  tags {
-    Name = "ci-sockshop-k8s-master"
+locals {
+  cluster_name = "socket-shop-${random_string.suffix.result}"
+}
+
+resource "random_string" "suffix" {
+  length  = 8
+  special = false
+}
+
+module "vpc" {
+  source  = "terraform-aws-modules/vpc/aws"
+  version = "5.8.1"
+
+  name = "socket-shop-vpc"
+
+  cidr = "10.0.0.0/16"
+  azs  = slice(data.aws_availability_zones.available.names, 0, 3)
+
+  private_subnets = ["10.0.1.0/24", "10.0.2.0/24", "10.0.3.0/24"]
+  public_subnets  = ["10.0.4.0/24", "10.0.5.0/24", "10.0.6.0/24"]
+
+  enable_nat_gateway   = true
+  single_nat_gateway   = true
+  enable_dns_hostnames = true
+
+  public_subnet_tags = {
+    "kubernetes.io/role/elb" = 1
   }
 
-  connection {
-    user = "ubuntu"
-    private_key = "${file("${var.private_key_path}")}"
-  }
-
-  provisioner "file" {
-    source = "deploy/kubernetes/manifests"
-    destination = "/tmp/"
-  }
-
-  provisioner "remote-exec" {
-    inline = [
-      "sudo curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -",
-      "sudo echo \"deb http://apt.kubernetes.io/ kubernetes-xenial main\" | sudo tee --append /etc/apt/sources.list.d/kubernetes.list",
-      "sudo apt-get update",
-      "sudo apt-get install -y docker.io",
-      "sudo apt-get install -y kubelet kubeadm kubectl kubernetes-cni"
-    ]
+  private_subnet_tags = {
+    "kubernetes.io/role/internal-elb" = 1
   }
 }
 
-resource "aws_instance" "ci-sockshop-k8s-node" {
-  instance_type   = "${var.node_instance_type}"
-  count           = "${var.node_count}"
-  ami             = "${lookup(var.aws_amis, var.aws_region)}"
-  key_name        = "${var.key_name}"
-  security_groups = ["${aws_security_group.k8s-security-group.name}"]
-  tags {
-    Name = "ci-sockshop-k8s-node"
+module "eks" {
+  source  = "terraform-aws-modules/eks/aws"
+  version = "20.8.5"
+
+  cluster_name    = local.cluster_name
+  cluster_version = "1.29"
+
+  cluster_endpoint_public_access           = true
+  enable_cluster_creator_admin_permissions = true
+
+  cluster_addons = {
+    aws-ebs-csi-driver = {
+      service_account_role_arn = module.irsa-ebs-csi.iam_role_arn
+    }
   }
 
-  connection {
-    user = "ubuntu"
-    private_key = "${file("${var.private_key_path}")}"
+  vpc_id     = module.vpc.vpc_id
+  subnet_ids = module.vpc.private_subnets
+
+  eks_managed_node_group_defaults = {
+    ami_type = "AL2_x86_64"
+
   }
 
-  provisioner "remote-exec" {
-    inline = [
-      "sudo curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -",
-      "sudo echo \"deb http://apt.kubernetes.io/ kubernetes-xenial main\" | sudo tee --append /etc/apt/sources.list.d/kubernetes.list",
-      "sudo apt-get update",
-      "sudo apt-get install -y docker.io",
-      "sudo apt-get install -y kubelet kubeadm kubectl kubernetes-cni",
-      "sudo sysctl -w vm.max_map_count=262144"
-    ]
+  eks_managed_node_groups = {
+    one = {
+      name = "socket-shop-node-group-1"
+
+      instance_types = ["t3.medium"]
+
+      min_size     = 1
+      max_size     = 2
+      desired_size = 1
+    }
+
+    two = {
+      name = "socket-shop-node-group-2"
+
+      instance_types = ["t3.medium"]
+
+      min_size     = 1
+      max_size     = 2
+      desired_size = 1
+    }
   }
 }
 
-resource "aws_elb" "ci-sockshop-k8s-elb" {
-  depends_on = [ "aws_instance.ci-sockshop-k8s-node" ]
-  name = "ci-sockshop-k8s-elb"
-  instances = ["${aws_instance.ci-sockshop-k8s-node.*.id}"]
-  availability_zones = ["${data.aws_availability_zones.available.names}"]
-  security_groups = ["${aws_security_group.k8s-security-group.id}"] 
-  listener {
-    lb_port = 80
-    instance_port = 30001
-    lb_protocol = "http"
-    instance_protocol = "http"
-  }
 
-  listener {
-    lb_port = 9411
-    instance_port = 30002
-    lb_protocol = "http"
-    instance_protocol = "http"
-  }
-
+# https://aws.amazon.com/blogs/containers/amazon-ebs-csi-driver-is-now-generally-available-in-amazon-eks-add-ons/ 
+data "aws_iam_policy" "ebs_csi_policy" {
+  arn = "arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy"
 }
 
+module "irsa-ebs-csi" {
+  source  = "terraform-aws-modules/iam/aws//modules/iam-assumable-role-with-oidc"
+  version = "5.39.0"
+
+  create_role                   = true
+  role_name                     = "AmazonEKSTFEBSCSIRole-${module.eks.cluster_name}"
+  provider_url                  = module.eks.oidc_provider
+  role_policy_arns              = [data.aws_iam_policy.ebs_csi_policy.arn]
+  oidc_fully_qualified_subjects = ["system:serviceaccount:kube-system:ebs-csi-controller-sa"]
+}
