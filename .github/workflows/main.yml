@@ -34,21 +34,23 @@ jobs:
 
       - name: Terraform Plan
         id: plan
-        run: terraform -chdir=deploy/kubernetes/terraform  plan
+        run: terraform -chdir=deploy/kubernetes/terraform  plan -destroy
         
-      - name: Terraform apply
-        id: apply
-        run: terraform -chdir=deploy/kubernetes/terraform apply --auto-approve
-
-      - name: AWS EKS with Kubectl
-        uses: giovannirossini/aws-eks@v1.0.1
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: "us-east-1"
-          cluster-name: "sock-shop"
-          command: |
-            kubectl apply -f deploy/kubernetes/complete-demo.yaml
+      # - name: Terraform apply
+      #   id: apply
+      #   run: terraform -chdir=deploy/kubernetes/terraform apply --auto-approve
+      - name: destroy
+        run: terraform -chdir=deploy/kubernetes/terraform destroy
+        
+      # - name: AWS EKS with Kubectl
+      #   uses: giovannirossini/aws-eks@v1.0.1
+      #   with:
+      #     aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      #     aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      #     aws-region: "us-east-1"
+      #     cluster-name: "sock-shop"
+      #     command: |
+      #       kubectl apply -f deploy/kubernetes/complete-demo.yaml
 
 
 
