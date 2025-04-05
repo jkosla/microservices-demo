@@ -15,7 +15,7 @@ data "aws_availability_zones" "available" {
 }
 
 locals {
-  cluster_name = "socket-shop-${random_string.suffix.result}"
+  cluster_name = "sock-shop-${random_string.suffix.result}"
 }
 
 resource "random_string" "suffix" {
@@ -27,7 +27,7 @@ module "vpc" {
   source  = "terraform-aws-modules/vpc/aws"
   version = "5.8.1"
 
-  name = "socket-shop-vpc"
+  name = "sock-shop-vpc"
 
   cidr = "10.0.0.0/16"
   azs  = slice(data.aws_availability_zones.available.names, 0, 3)
@@ -74,7 +74,7 @@ module "eks" {
 
   eks_managed_node_groups = {
     one = {
-      name = "socket-shop-group-1"
+      name = "sock-shop-group-1"
 
       instance_types = ["t3.medium"]
 
@@ -84,7 +84,7 @@ module "eks" {
     }
 
     two = {
-      name = "socket-shop-group-2"
+      name = "sock-shop-group-2"
 
       instance_types = ["t3.medium"]
 
