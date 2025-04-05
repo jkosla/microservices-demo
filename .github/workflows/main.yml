@@ -33,7 +33,7 @@ jobs:
         run: terraform -chdir=deploy/kubernetes/terraform init
 
       - name: destroy
-        run: terraform destory
+        run: terraform destroy
 
       # - name: Terraform Plan
       #   id: plan
