@@ -3,8 +3,8 @@
 
 provider "aws" {
   region = var.region
+  profile = "demo"
 }
-
 # Filter out local zones, which are not currently supported 
 # with managed node groups
 data "aws_availability_zones" "available" {
@@ -117,7 +117,7 @@ terraform {
     bucket       = "tf-state-bucket-jkosla-eu-north-1"
     key          = "deploy/terraform/terraform.tfstate"
     use_lockfile = true
-    region       = "eu-north-1"
+    region       = "us-east-2"
   }
 }
 
