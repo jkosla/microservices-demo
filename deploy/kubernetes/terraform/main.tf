@@ -117,7 +117,7 @@ terraform {
     bucket       = "tf-state-bucket-jkosla-eu-north-1"
     key          = "deploy/terraform/terraform.tfstate"
     use_lockfile = true
-    region       = "us-east-2"
+    region       = "eu-north-1"
   }
 }
 
