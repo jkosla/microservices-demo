@@ -64,7 +64,7 @@ module "eks" {
   }
 
   vpc_id     = module.vpc.vpc_id
-  subnet_ids = module.vpc.private_subnets
+  subnet_ids = module.vpc.public_subnets
 
   eks_managed_node_group_defaults = {
     ami_type = "AL2_x86_64"
@@ -80,6 +80,7 @@ module "eks" {
       min_size     = 1
       max_size     = 2
       desired_size = 1
+      associate_public_ip_address = true
     }
 
     two = {
@@ -90,6 +91,8 @@ module "eks" {
       min_size     = 1
       max_size     = 2
       desired_size = 1
+      associate_public_ip_address = true
+
     }
   }
 }
