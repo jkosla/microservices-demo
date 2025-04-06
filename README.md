@@ -62,7 +62,7 @@ Grafana Dashboards: I used the [Grafana EKS Cluster Prometheus Dashboard](https:
 This successfully enabled Prometheus to scrape metrics from the front-end service, and Grafana was configured to update its dashboard with real-time data from Prometheus.
 
 ### 3. Automating Infrastructure with Terraform
-To further streamline the process, I implemented Terraform for Infrastructure as Code (IaC). Using Terraform, I defined resources such as the VPC, EKS cluster, and IAM roles. The infrastructure was automatically provisioned by Terraform, making it repeatable and scalable.
+To further streamline the process, I implemented Terraform for Infrastructure as Code (IaC). Using Terraform, I defined resources such as the VPC, EKS cluster, and IAM roles. The infrastructure was automatically provisioned by Terraform, making it repeatable and scalable (files in `deploy/kubernetes/terraform`)
 
 Terraform configuration for the AWS provider, VPC, and EKS cluster:
 ```hcl
