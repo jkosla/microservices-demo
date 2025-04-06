@@ -114,7 +114,7 @@ module "irsa-ebs-csi" {
 
 terraform {
   backend "s3" {
-    bucket       = "tf-state-bucket-jkosla"
+    bucket       = "tf-state-bucket-jkosla-eu-north-1"
     key          = "deploy/terraform/terraform.tfstate"
     use_lockfile = true
     region       = "eu-north-1"
