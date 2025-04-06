@@ -111,3 +111,13 @@ module "irsa-ebs-csi" {
   role_policy_arns              = [data.aws_iam_policy.ebs_csi_policy.arn]
   oidc_fully_qualified_subjects = ["system:serviceaccount:kube-system:ebs-csi-controller-sa"]
 }
+
+terraform {
+  backend "s3" {
+    bucket       = "tf-state-bucket-jkosla"
+    key          = "deploy/terraform/terraform.tfstate"
+    use_lockfile = true
+    region       = var.region
+  }
+}
+
