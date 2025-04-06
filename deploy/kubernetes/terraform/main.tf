@@ -38,6 +38,8 @@ module "vpc" {
   single_nat_gateway   = true
   enable_dns_hostnames = true
 
+  map_public_ip_on_launch = true
+
   public_subnet_tags = {
     "kubernetes.io/role/elb" = 1
   }
@@ -45,6 +47,7 @@ module "vpc" {
   private_subnet_tags = {
     "kubernetes.io/role/internal-elb" = 1
   }
+
 }
 
 module "eks" {
@@ -80,7 +83,6 @@ module "eks" {
       min_size     = 1
       max_size     = 2
       desired_size = 1
-      associate_public_ip_address = true
     }
 
     two = {
@@ -91,7 +93,6 @@ module "eks" {
       min_size     = 1
       max_size     = 2
       desired_size = 1
-      associate_public_ip_address = true
 
     }
   }
